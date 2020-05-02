@@ -1,7 +1,7 @@
 from distutils.core import setup
 setup(
-  name = 'TimeDistributedImageGenerator',
-  packages = ['TimeDistributedImageGenerator'],
+  name = 'TimeDistributedImageDataGenerator',
+  packages = ['TimeDistributedImageDataGenerator'],
   version = '0.1',
   license='MIT',
   description = 'Extension of Keras ImageDataGenerator class for TimeDistributed layer support.',
@@ -17,7 +17,7 @@ setup(
   classifiers=[
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
-    'Topic :: Software Development :: Deep Learning Library Extension',
+    'Topic :: Software Development',
     'License :: OSI Approved :: MIT License',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.4',

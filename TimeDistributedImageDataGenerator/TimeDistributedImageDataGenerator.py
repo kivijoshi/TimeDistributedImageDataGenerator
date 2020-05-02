@@ -6,7 +6,7 @@ import numpy as np
 from keras.preprocessing.image import array_to_img, img_to_array, load_img
 from keras.preprocessing.image import DirectoryIterator
 
-class TimeDistImageDataGenerator(ImageDataGenerator):
+class TimeDistributedImageDataGenerator(ImageDataGenerator):
     def __init__(self,
                  featurewise_center=False,
                  samplewise_center=False,
