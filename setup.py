@@ -8,7 +8,7 @@ setup(
   author = 'Kaustubh Joshi',
   author_email = 'kaustubh.kivijoshi@gmail.com',
   url = 'https://github.com/kivijoshi/TimeDistributedImageDataGenerator',
-  download_url = 'https://github.com/kivijoshi/TimeDistributedImageDataGenerator/archive/v_01.tar.gz',
+  download_url = 'https://github.com/kivijoshi/TimeDistributedImageDataGenerator/archive/v_02.tar.gz',
   keywords = ['Keras', 'TimeDistributed', 'Extension'],
   install_requires=[            
           'keras',
