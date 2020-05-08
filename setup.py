@@ -2,13 +2,13 @@ from distutils.core import setup
 setup(
   name = 'TimeDistributedImageDataGenerator',
   packages = ['TimeDistributedImageDataGenerator'],
-  version = '0.3',
+  version = '0.4',
   license='MIT',
   description = 'Extension of Keras ImageDataGenerator class for TimeDistributed layer support.',
   author = 'Kaustubh Joshi',
   author_email = 'kaustubh.kivijoshi@gmail.com',
   url = 'https://github.com/kivijoshi/TimeDistributedImageDataGenerator',
-  download_url = 'https://github.com/kivijoshi/TimeDistributedImageDataGenerator/archive/v_03.tar.gz',
+  download_url = 'https://github.com/kivijoshi/TimeDistributedImageDataGenerator/archive/v_04.tar.gz',
   keywords = ['Keras', 'TimeDistributed', 'Extension'],
   install_requires=[            
           'keras',

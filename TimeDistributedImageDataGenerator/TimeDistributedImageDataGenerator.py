@@ -1,10 +1,8 @@
 import tensorflow as tf
-from tensorflow import keras
 from keras.preprocessing.image import ImageDataGenerator
-import types
-import numpy as np
 from keras.preprocessing.image import array_to_img, img_to_array, load_img
-from keras.preprocessing.image import DirectoryIterator
+from keras.preprocessing.image import DirectoryIterator,DataFrameIterator
+import numpy as np
 
 class TimeDistributedImageDataGenerator(ImageDataGenerator):
     def __init__(self,
@@ -27,10 +25,9 @@ class TimeDistributedImageDataGenerator(ImageDataGenerator):
                  vertical_flip=False,
                  rescale=None,
                  preprocessing_function=None,
-                 data_format='channels_last',
+                 data_format=None,
                  validation_split=0.0,
-                 interpolation_order=1,
-                 dtype='float32',
+                 dtype=None,
                  time_steps = 5):
 
                  self.time_steps = time_steps
@@ -56,8 +53,7 @@ class TimeDistributedImageDataGenerator(ImageDataGenerator):
                                   preprocessing_function=preprocessing_function,
                                   data_format=data_format,
                                   validation_split=validation_split,
-                                  interpolation_order=interpolation_order,
-                                  dtype=dtype)
+                                  dtype = dtype)
     """Takes the path to a directory & generates batches of augmented data.
 
         # Arguments
@@ -149,26 +145,137 @@ class TimeDistributedImageDataGenerator(ImageDataGenerator):
                             subset=None,
                             interpolation='nearest'):
 
-        return TimeDistributedDirectoryIterator(
-            directory,
-            self,
-            target_size=target_size,
-            color_mode=color_mode,
-            classes=classes,
-            class_mode=class_mode,
-            data_format=self.data_format,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            seed=seed,
-            save_to_dir=save_to_dir,
-            save_prefix=save_prefix,
-            save_format=save_format,
-            follow_links=follow_links,
-            subset=subset,
-            interpolation=interpolation
-        )
-        
+                            return TimeDistributedDirectoryIterator(
+                            directory,
+                            self,
+                            target_size=target_size,
+                            color_mode=color_mode,
+                            classes=classes,
+                            class_mode=class_mode,
+                            data_format=self.data_format,
+                            batch_size=batch_size,
+                            shuffle=shuffle,
+                            seed=seed,
+                            save_to_dir=save_to_dir,
+                            save_prefix=save_prefix,
+                            save_format=save_format,
+                            follow_links=follow_links,
+                            subset=subset,
+                            interpolation=interpolation
+                            )
 
+    def flow_from_dataframe(self,
+                            dataframe,
+                            directory=None,
+                            x_col="filename",
+                            y_col="class",
+                            weight_col=None,
+                            target_size=(256, 256),
+                            color_mode='rgb',
+                            classes=None,
+                            class_mode='categorical',
+                            batch_size=32,
+                            shuffle=True,
+                            seed=None,
+                            save_to_dir=None,
+                            save_prefix='',
+                            save_format='png',
+                            subset=None,
+                            interpolation='nearest',
+                            validate_filenames=True,
+                            **kwargs):
+                            
+                            return TimeDistributedDataFrameIterator(
+                            dataframe,
+                            directory,
+                            self,
+                            x_col=x_col,
+                            y_col=y_col,
+                            weight_col=weight_col,
+                            target_size=target_size,
+                            color_mode=color_mode,
+                            classes=classes,
+                            class_mode=class_mode,
+                            data_format=self.data_format,
+                            batch_size=batch_size,
+                            shuffle=shuffle,
+                            seed=seed,
+                            save_to_dir=save_to_dir,
+                            save_prefix=save_prefix,
+                            save_format=save_format,
+                            subset=subset,
+                            interpolation=interpolation,
+                            validate_filenames=validate_filenames,
+                            **kwargs
+                            )
+        
+class TimeDistributedDataFrameIterator(DataFrameIterator):
+    def _get_batches_of_transformed_samples(self, index_array):
+        """Gets a batch of transformed samples.
+
+        # Arguments
+            index_array: Array of sample indices to include in batch.
+
+        # Returns
+            A batch of transformed samples.
+        """
+        TimeSteps = self.image_data_generator.time_steps
+        batch_x = np.zeros((len(index_array),) + (TimeSteps,) + self.image_shape, dtype=self.dtype)#KJ
+        # build batch of image data
+        # self.filepaths is dynamic, is better to call it once outside the loop
+        filepaths = self.filepaths
+        for i, j in enumerate(index_array):
+            for k in reversed(range(0,TimeSteps)):
+                try:
+                    img = load_img(filepaths[j-k],
+                                color_mode=self.color_mode,
+                                target_size=self.target_size,
+                                interpolation=self.interpolation)
+                    x = img_to_array(img, data_format=self.data_format)
+                except:
+                    pass
+                # Pillow images should be closed after `load_img`,
+                # but not PIL images.
+                if hasattr(img, 'close'):
+                    img.close()
+                if self.image_data_generator:
+                    params = self.image_data_generator.get_random_transform(x.shape)
+                    x = self.image_data_generator.apply_transform(x, params)
+                    x = self.image_data_generator.standardize(x)
+                batch_x[i][k] = x
+        # optionally save augmented images to disk for debugging purposes
+        if self.save_to_dir:
+            for i, j in enumerate(index_array):
+                img = array_to_img(batch_x[i], self.data_format, scale=True)
+                fname = '{prefix}_{index}_{hash}.{format}'.format(
+                    prefix=self.save_prefix,
+                    index=j,
+                    hash=np.random.randint(1e7),
+                    format=self.save_format)
+                img.save(os.path.join(self.save_to_dir, fname))
+        # build batch of labels
+        if self.class_mode == 'input':
+            batch_y = batch_x.copy()
+        elif self.class_mode in {'binary', 'sparse'}:
+            batch_y = np.empty(len(batch_x), dtype=self.dtype)
+            for i, n_observation in enumerate(index_array):
+                batch_y[i] = self.classes[n_observation]
+        elif self.class_mode == 'categorical':
+            batch_y = np.zeros((len(batch_x), TimeSteps, len(self.class_indices)),
+                               dtype=self.dtype)
+            for i, n_observation in enumerate(index_array):
+                for q in reversed(range(0,TimeSteps)):
+                    batch_y[i,q,self.classes[n_observation-q]] = 1.
+        elif self.class_mode == 'multi_output':
+            batch_y = [output[index_array] for output in self.labels]
+        elif self.class_mode == 'raw':
+            batch_y = self.labels[index_array]
+        else:
+            return batch_x
+        if self.sample_weight is None:
+            return batch_x, batch_y
+        else:
+            return batch_x, batch_y, self.sample_weight[index_array]
 
 class TimeDistributedDirectoryIterator(DirectoryIterator):
 
